@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base64 CTF Lab</title>
+<style>
+:root{
+  --bg:#06080f;
+  --panel:#0d1220;
+  --border:#16203a;
+  --cyan:#00d4ff;
+  --green:#39ff88;
+  --purple:#a78bfa;
+  --red:#ff4d6d;
+  --yellow:#ffd166;
+  --text:#c9d6f0;
+  --text-dim:#7c89ab;
+  --mono:'JetBrains Mono','Fira Code',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(0,212,255,0.07), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(167,139,250,0.07), transparent 40%);
+  color:var(--text);
+  font-family:var(--mono);
+  min-height:100vh;
+  line-height:1.55;
+  padding:20px;
+}
+.wrap{max-width:920px;margin:0 auto;}
+
+header{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--border);
+  padding-bottom:16px;margin-bottom:20px;
+}
+.logo{font-size:1.3rem;color:var(--cyan);font-weight:700;}
+.logo span{color:var(--green);}
+.logo small{display:block;font-size:0.62rem;color:var(--text-dim);letter-spacing:2px;margin-top:2px;}
+.stats{display:flex;gap:12px;flex-wrap:wrap;}
+.stat-box{background:var(--panel);border:1px solid var(--border);padding:8px 14px;border-radius:8px;text-align:center;min-width:76px;}
+.stat-box .v{font-size:1.05rem;color:var(--green);font-weight:700;}
+.stat-box .l{font-size:0.58rem;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;}
+
+/* PROGRESS */
+.progress-track{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:22px;}
+.progress-bar-bg{background:#0a0f1c;border-radius:6px;height:10px;overflow:hidden;border:1px solid var(--border);margin-top:8px;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));width:0%;transition:width .4s ease;}
+.level-dots{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.dot{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--text-dim);background:#0a0f1c;cursor:pointer;transition:all .2s;}
+.dot.done{background:rgba(57,255,136,0.12);border-color:var(--green);color:var(--green);}
+.dot.active{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 8px rgba(0,212,255,0.4);}
+.dot.locked{opacity:0.4;cursor:not-allowed;}
+
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+.tab-btn{background:var(--panel);border:1px solid var(--border);color:var(--text-dim);padding:8px 14px;border-radius:6px;font-family:var(--mono);font-size:0.75rem;cursor:pointer;transition:all .2s;}
+.tab-btn:hover{color:var(--text);border-color:var(--cyan);}
+.tab-btn.active{background:rgba(0,212,255,0.1);color:var(--cyan);border-color:var(--cyan);}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:26px;margin-bottom:20px;}
+.panel h2{color:var(--cyan);font-size:1.15rem;margin-bottom:6px;}
+.panel .sub{color:var(--text-dim);font-size:0.78rem;margin-bottom:18px;}
+.tag{display:inline-block;font-size:0.62rem;padding:3px 9px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;margin-right:6px;margin-bottom:14px;}
+.tag.easy{background:rgba(57,255,136,0.12);color:var(--green);border:1px solid var(--green);}
+.tag.med{background:rgba(255,209,102,0.12);color:var(--yellow);border:1px solid var(--yellow);}
+.tag.hard{background:rgba(255,77,109,0.12);color:var(--red);border:1px solid var(--red);}
+.tag.pts{background:rgba(167,139,250,0.12);color:var(--purple);border:1px solid var(--purple);}
+
+.section-title{color:var(--green);font-size:0.85rem;margin:18px 0 8px;border-left:3px solid var(--green);padding-left:8px;}
+.lesson-box{background:#0a0f1c;border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;font-size:0.85rem;color:var(--text);}
+.lesson-box code, .inline-code{background:#10182c;color:var(--cyan);padding:2px 6px;border-radius:4px;font-size:0.82rem;border:1px solid var(--border);}
+pre.codeblock{background:#0a0f1c;border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto;font-size:0.8rem;color:var(--green);margin:10px 0;white-space:pre-wrap;word-break:break-word;}
+.step{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start;}
+.step-num{background:rgba(0,212,255,0.12);color:var(--cyan);border:1px solid var(--cyan);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0;margin-top:2px;}
+.step-text{font-size:0.85rem;color:var(--text);}
+
+.try-box{background:#0a0f1c;border:1px dashed var(--border);border-radius:8px;padding:14px;margin:10px 0;}
+.try-box label{font-size:0.72rem;color:var(--text-dim);display:block;margin-bottom:6px;}
+.try-box input,.try-box textarea{width:100%;background:#0d1220;border:1px solid var(--border);color:var(--cyan);padding:8px 10px;border-radius:6px;font-family:var(--mono);font-size:0.85rem;margin-bottom:8px;resize:vertical;}
+.try-box button, .mini-btn{background:rgba(167,139,250,0.12);color:var(--purple);border:1px solid var(--purple);padding:6px 12px;border-radius:6px;font-family:var(--mono);font-size:0.72rem;cursor:pointer;}
+.try-box button:hover, .mini-btn:hover{background:rgba(167,139,250,0.25);}
+.try-result{font-size:0.8rem;margin-top:8px;color:var(--green);min-height:1em;word-break:break-all;}
+
+/* LIVE TOOLBOX (encoder/decoder widget) */
+.toolbox{background:#0a0f1c;border:1px solid var(--border);border-radius:8px;padding:16px;margin:14px 0;}
+.toolbox-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.toolbox-row button{background:rgba(0,212,255,0.1);color:var(--cyan);border:1px solid var(--cyan);padding:8px 14px;border-radius:6px;font-family:var(--mono);font-size:0.75rem;cursor:pointer;}
+.toolbox-row button:hover{background:rgba(0,212,255,0.2);}
+.toolbox textarea{width:100%;min-height:70px;background:#0d1220;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px;font-family:var(--mono);font-size:0.82rem;resize:vertical;}
+.toolbox-label{font-size:0.68rem;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
+
+.flag-form{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+.flag-form input{flex:1;min-width:220px;background:#0a0f1c;border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:8px;font-family:var(--mono);font-size:0.9rem;}
+.flag-form input:focus{outline:none;border-color:var(--cyan);}
+.btn{background:linear-gradient(135deg,var(--cyan),#0090b0);color:#001018;border:none;padding:12px 22px;border-radius:8px;font-family:var(--mono);font-weight:700;font-size:0.85rem;cursor:pointer;letter-spacing:0.5px;transition:transform .15s;}
+.btn:hover{transform:translateY(-1px);}
+.btn.secondary{background:transparent;color:var(--purple);border:1px solid var(--purple);}
+.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red);}
+.feedback{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:0.85rem;display:none;}
+.feedback.ok{background:rgba(57,255,136,0.1);border:1px solid var(--green);color:var(--green);display:block;}
+.feedback.fail{background:rgba(255,77,109,0.1);border:1px solid var(--red);color:var(--red);display:block;}
+
+.hints-area{margin-top:16px;}
+.hint-row{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+.hint-card{background:rgba(255,209,102,0.08);border:1px solid var(--yellow);border-radius:8px;padding:10px 14px;font-size:0.8rem;color:var(--yellow);margin-top:8px;display:none;}
+.hint-card.show{display:block;}
+.hint-cost{font-size:0.65rem;color:var(--text-dim);}
+
+footer{text-align:center;color:var(--text-dim);font-size:0.7rem;margin-top:30px;padding-top:18px;border-top:1px solid var(--border);}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--panel);border:1px solid var(--green);color:var(--green);padding:12px 18px;border-radius:8px;font-size:0.8rem;box-shadow:0 4px 20px rgba(0,0,0,0.4);transform:translateY(100px);opacity:0;transition:all .3s ease;z-index:999;}
+.toast.show{transform:translateY(0);opacity:1;}
+.complete-banner{text-align:center;padding:40px 20px;}
+.complete-banner h2{color:var(--green);font-size:1.6rem;margin-bottom:10px;}
+.complete-banner p{color:var(--text-dim);font-size:0.85rem;}
+
+.intro-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:16px 0;}
+.intro-card{background:#0a0f1c;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.intro-card .n{color:var(--cyan);font-size:0.82rem;font-weight:700;}
+.intro-card .d{color:var(--text-dim);font-size:0.72rem;margin-top:4px;}
+.charset-strip{font-size:0.78rem;color:var(--green);background:#0a0f1c;border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:10px;word-break:break-all;}
+
+@media(max-width:600px){
+  .stats{width:100%;justify-content:space-between;}
+  .stat-box{flex:1;}
+  .intro-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">BASE64<span>_</span>CTF LAB
+      <small>OFFLINE ENCODING TRAINING MODULE</small>
+    </div>
+    <div class="stats">
+      <div class="stat-box"><div class="v" id="scoreVal">0</div><div class="l">Score</div></div>
+      <div class="stat-box"><div class="v" id="solvedVal">0/4</div><div class="l">Solved</div></div>
+      <div class="stat-box"><div class="v" id="hintVal">0</div><div class="l">Hints Used</div></div>
+    </div>
+  </header>
+
+  <!-- INTRO / EXPLAINER PANEL -->
+  <div class="panel" id="introPanel">
+    <h2>📘 What is Base64?</h2>
+    <p class="sub">Read this before starting — every level builds on this concept.</p>
+    <div class="lesson-box">
+      Base64 is an <strong>encoding</strong> scheme — not encryption — that converts binary or text
+      data into a string made of only 64 printable ASCII characters. It exists because some systems
+      (old email protocols, URLs, JSON, config files) can't safely carry raw binary data, so Base64
+      repackages that data into safe, printable text. It is fully <strong>reversible with no key</strong>:
+      anyone can decode it instantly, which is exactly why CTFs love using it as a first obfuscation layer.
+    </div>
+    <div class="charset-strip">Base64 alphabet: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/ &nbsp; (padding character: =)</div>
+
+    <div class="intro-grid">
+      <div class="intro-card"><div class="n">🔍 How to recognize it</div><div class="d">Only letters, digits, + and /, often ending in = or == padding.</div></div>
+      <div class="intro-card"><div class="n">🔄 Reversible</div><div class="d">Decoding requires no password or key — it's just a lookup table.</div></div>
+      <div class="intro-card"><div class="n">📦 3 bytes → 4 chars</div><div class="d">Every 3 raw bytes become 4 Base64 characters, padded if needed.</div></div>
+      <div class="intro-card"><div class="n">🧩 Stacks</div><div class="d">Output can be Base64 again ("multi-layer") or hide inside other formats.</div></div>
+    </div>
+
+    <div class="section-title">⚙️ Live Encoder / Decoder Toolbox</div>
+    <p class="sub">Use this throughout the lab — it works fully offline using your browser's built-in Base64 functions.</p>
+    <div class="toolbox">
+      <div class="toolbox-label">Input</div>
+      <textarea id="toolInput" placeholder="Type or paste text/Base64 here..."></textarea>
+      <div class="toolbox-row" style="margin-top:10px;">
+        <button onclick="toolEncode()">Encode → Base64</button>
+        <button onclick="toolDecode()">Decode ← Base64</button>
+        <button onclick="toolSwap()">⇄ Swap Output to Input</button>
+        <button onclick="toolClear()">Clear</button>
+      </div>
+      <div class="toolbox-label">Output</div>
+      <textarea id="toolOutput" placeholder="Result appears here..." readonly></textarea>
+    </div>
+
+    <button class="btn" onclick="beginLab()">Begin Lab →</button>
+  </div>
+
+  <!-- PROGRESS (hidden until lab starts) -->
+  <div class="hidden-section" id="labArea" style="display:none;">
+    <div class="progress-track">
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);">
+        <span>OVERALL PROGRESS</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <div class="level-dots" id="levelDots"></div>
+    </div>
+
+    <div class="tabs" id="tabBar"></div>
+
+    <div id="levelContainer"></div>
+
+    <div class="panel" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <button class="btn secondary" onclick="showIntro()">← Back to Toolbox / Intro</button>
+      <button class="btn danger" onclick="resetProgress()">Reset All Progress</button>
+    </div>
+  </div>
+
+  <footer>Base64 CTF Lab — Fully offline — No external libraries — Works without internet access</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   BASE64 CTF LAB - fully offline, single file, no libraries
+   ============================================================ */
+
+/* ---------- safe encode/decode helpers (handle UTF-8 properly) ---------- */
+function b64encode(str){
+  try{
+    return btoa(unescape(encodeURIComponent(str)));
+  }catch(e){
+    return "ERROR: input could not be encoded.";
+  }
+}
+function b64decode(str){
+  try{
+    return decodeURIComponent(escape(atob(str.trim())));
+  }catch(e){
+    return "ERROR: invalid Base64 input.";
+  }
+}
+
+/* ---------- toolbox ---------- */
+function toolEncode(){
+  const inp = document.getElementById('toolInput').value;
+  document.getElementById('toolOutput').value = b64encode(inp);
+}
+function toolDecode(){
+  const inp = document.getElementById('toolInput').value;
+  document.getElementById('toolOutput').value = b64decode(inp);
+}
+function toolSwap(){
+  const out = document.getElementById('toolOutput').value;
+  document.getElementById('toolInput').value = out;
+  document.getElementById('toolOutput').value = '';
+}
+function toolClear(){
+  document.getElementById('toolInput').value = '';
+  document.getElementById('toolOutput').value = '';
+}
+
+/* ---------- level definitions ---------- */
+// Level flags are generated at runtime via b64encode/b64decode so they always
+// match exactly what the browser's own Base64 functions produce.
+
+const RAW_FLAG_1 = "INSA{base64_decoded}";
+const RAW_FLAG_3_INNER = "INSA{multi_layer_b64}";
+const RAW_FLAG_4_HIDDEN = "INSA{hidden_in_plain_sight}";
+
+const LEVELS = [
+  {
+    id:1,
+    title:"Decode Base64",
+    category:"Decoding",
+    difficulty:"easy",
+    points:100,
+    summary:"Decode a single Base64-encoded string to reveal the flag.",
+    lesson:`
+      <div class="lesson-box">
+        Decoding reverses the encoding process — you take the Base64 string and convert it
+        straight back to the original text. No key, no guessing, just a direct lookup.
+      </div>
+      <div class="section-title">How to decode</div>
+      <div class="step"><div class="step-num">1</div><div class="step-text">Spot the Base64 charset: letters, digits, <code>+</code>, <code>/</code>, possibly trailing <code>=</code>.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">On Linux/Arch terminal:</div></div>
+      <pre class="codeblock">echo "SGVsbG8sIFdvcmxkIQ==" | base64 -d</pre>
+      <div class="step"><div class="step-num">3</div><div class="step-text">In Python:</div></div>
+      <pre class="codeblock">import base64
+print(base64.b64decode("SGVsbG8sIFdvcmxkIQ==").decode())</pre>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Or just paste it into the Toolbox above and click "Decode ← Base64".</div></div>
+    `,
+    practice:{
+      label:"Practice: decode this short string and type the plaintext result:",
+      challenge:"SGVsbG8=",
+      answer:"Hello",
+      placeholder:"type decoded text"
+    },
+    flagPrompt:"Decode the string below using the terminal, Python, or the Toolbox above. Submit the exact decoded text as the flag.",
+    getChallengeData:()=> b64encode(RAW_FLAG_1),
+    checkFlag:(submitted)=> submitted.trim() === RAW_FLAG_1,
+    flagForHints: RAW_FLAG_1,
+    hints:[
+      "This is plain single-layer Base64 — paste it into the Toolbox's input box and click 'Decode ← Base64'.",
+      "The decoded result IS the flag, no further steps needed.",
+      "It will decode to something in the format INSA{...}."
+    ]
+  },
+  {
+    id:2,
+    title:"Encode Base64",
+    category:"Encoding",
+    difficulty:"easy",
+    points:100,
+    summary:"This time YOU produce the Base64 — encode a given phrase correctly to get the flag.",
+    lesson:`
+      <div class="lesson-box">
+        Encoding is the reverse direction: turning normal text into Base64. You'll do this
+        constantly when crafting payloads, hiding data in transit, or building your own CTF challenges
+        (e.g. for MASU Cyber Academy content).
+      </div>
+      <div class="section-title">How to encode</div>
+      <div class="step"><div class="step-num">1</div><div class="step-text">On Linux/Arch terminal:</div></div>
+      <pre class="codeblock">echo -n "attack at dawn" | base64</pre>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Note the <code>-n</code> flag — without it, <code>echo</code> adds a trailing newline which changes the encoded output!</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">In Python:</div></div>
+      <pre class="codeblock">import base64
+print(base64.b64encode(b"attack at dawn").decode())</pre>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Or type the phrase into the Toolbox above and click "Encode → Base64".</div></div>
+    `,
+    practice:{
+      label:"Practice: encode the word 'test' to Base64 and paste the result:",
+      challenge:"test",
+      answer:"dGVzdA==",
+      placeholder:"paste Base64 result"
+    },
+    flagPrompt:"Encode the EXACT phrase below to Base64 (case-sensitive, no extra spaces or newline) and submit the resulting Base64 string as the flag:",
+    getChallengeData:()=> "INSA{encode_me_correctly}",
+    checkFlag:(submitted)=> submitted.trim() === b64encode("INSA{encode_me_correctly}"),
+    flagForHints: b64encode("INSA{encode_me_correctly}"),
+    hints:[
+      "Type the phrase exactly as shown (it already includes the INSA{...} braces) into the Toolbox and click 'Encode → Base64'.",
+      "Make sure there's no extra trailing space or newline — that changes the output bytes.",
+      "If using the terminal, remember `echo -n` to avoid an extra newline being encoded."
+    ]
+  },
+  {
+    id:3,
+    title:"Multi-layer Base64",
+    category:"Decoding",
+    difficulty:"med",
+    points:150,
+    summary:"The flag is wrapped in Base64 more than once. Peel back each layer.",
+    lesson:`
+      <div class="lesson-box">
+        CTF challenges often stack encodings to add friction. After decoding once, always
+        re-check the output: if it's STILL only letters/digits/+//= characters, it's probably
+        Base64 again — keep decoding until you get readable text.
+      </div>
+      <div class="section-title">Workflow</div>
+      <div class="step"><div class="step-num">1</div><div class="step-text">Decode once, inspect the result.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">If the result still looks like Base64 (no spaces, no readable words, valid charset), decode again.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Repeat until the output is human-readable. A quick Python loop automates this:</div></div>
+      <pre class="codeblock">import base64
+data = "your_string_here"
+for i in range(5):
+    try:
+        decoded = base64.b64decode(data).decode()
+        print(f"Layer {i+1}: {decoded}")
+        data = decoded
+    except Exception:
+        print("Stopped - not valid Base64 anymore (or fully decoded).")
+        break</pre>
+      <div class="step"><div class="step-num">4</div><div class="step-text">Stop decoding as soon as the result is readable plain text — that's your final answer.</div></div>
+    `,
+    practice:{
+      label:"Practice: this is Base64 encoded TWICE. Decode it twice and type the final plaintext:",
+      challenge: b64encode(b64encode("double")),
+      answer:"double",
+      placeholder:"type final plaintext"
+    },
+    flagPrompt:"This string has been Base64-encoded THREE times. Keep decoding (using the Toolbox, repeatedly) until you reach readable text, then submit that final flag:",
+    getChallengeData:()=> b64encode(b64encode(b64encode(RAW_FLAG_3_INNER))),
+    checkFlag:(submitted)=> submitted.trim() === RAW_FLAG_3_INNER,
+    flagForHints: RAW_FLAG_3_INNER,
+    hints:[
+      "Paste the challenge string into the Toolbox and decode it. Look at the result — does it still look like Base64?",
+      "Decode the result again. If it still looks like a Base64 charset, decode one more time.",
+      "It takes exactly 3 decode operations total. The final readable text is the flag, format INSA{...}."
+    ]
+  },
+  {
+    id:4,
+    title:"Hidden Flag",
+    category:"Forensics + Encoding",
+    difficulty:"hard",
+    points:200,
+    summary:"The flag isn't sitting alone this time — it's hidden inside a larger block of decoy text and structure. Find it, then decode it.",
+    lesson:`
+      <div class="lesson-box">
+        Real CTF forensics challenges rarely hand you a clean isolated string. Encoded data often
+        hides inside logs, config files, comments, or padded noise. You need to first <strong>locate</strong>
+        the relevant Base64 chunk, then decode it.
+      </div>
+      <div class="section-title">How to approach hidden data</div>
+      <div class="step"><div class="step-num">1</div><div class="step-text">Scan the blob for a contiguous run of valid Base64 characters — it usually stands out from surrounding prose because it has no spaces and ends in <code>=</code> or <code>==</code>.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">Ignore decoy text/log lines around it — they're there to slow you down, not to be decoded.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Extract ONLY that exact substring (no surrounding spaces, no quotes) and decode it using the Toolbox.</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">In real engagements you'd automate extraction with a regex like:</div></div>
+      <pre class="codeblock">import re
+text = open("logfile.txt").read()
+candidates = re.findall(r'[A-Za-z0-9+/]{20,}={0,2}', text)
+print(candidates)</pre>
+    `,
+    practice:{
+      label:"Practice: find the Base64 chunk in this short decoy line and decode it: 'log: user=admin session_id=Y3Rm status=ok'",
+      challenge:"Y3Rm",
+      answer:"ctf",
+      placeholder:"type decoded text from session_id"
+    },
+    flagPrompt:"A log snippet is shown below. Find the hidden Base64-encoded flag inside it, extract just that part, decode it, and submit the flag:",
+    getChallengeData:()=> {
+      const encoded = b64encode(RAW_FLAG_4_HIDDEN);
+      return `[2026-06-21 09:14:02] auth_attempt user=guest ip=10.0.0.4 result=denied
+[2026-06-21 09:14:05] session_token=${encoded} renewed=true
+[2026-06-21 09:14:07] cache_clear status=ok duration_ms=12`;
+    },
+    checkFlag:(submitted)=> submitted.trim() === RAW_FLAG_4_HIDDEN,
+    flagForHints: RAW_FLAG_4_HIDDEN,
+    hints:[
+      "Look at the middle log line — one field's value is much longer and only uses Base64-safe characters.",
+      "Extract just the value after 'session_token=' (stop before the next space) and decode that in the Toolbox.",
+      "The decoded session_token value IS the flag, format INSA{...}."
+    ]
+  }
+];
+
+const STORAGE_KEY = "masu_base64_ctf_lab_v1";
+let state = loadState();
+
+function defaultState(){
+  let lv = {};
+  LEVELS.forEach(l => lv[l.id] = {solved:false, hintsUsed:0, attempts:0});
+  return {score:0, levels:lv, activeLevel:1, totalHints:0};
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    const d = defaultState();
+    Object.assign(d, parsed);
+    LEVELS.forEach(l=>{ if(!d.levels[l.id]) d.levels[l.id] = {solved:false, hintsUsed:0, attempts:0}; });
+    return d;
+  }catch(e){
+    return defaultState();
+  }
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function resetProgress(){
+  if(!confirm("This will erase all score, solved levels, and hint usage. Continue?")) return;
+  state = defaultState();
+  saveState();
+  renderAll();
+  showToast("Progress reset.");
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function isUnlocked(levelId){
+  if(levelId === 1) return true;
+  return state.levels[levelId-1] && state.levels[levelId-1].solved;
+}
+
+function setActiveLevel(id){
+  if(!isUnlocked(id)){
+    showToast("Solve the previous level first.");
+    return;
+  }
+  state.activeLevel = id;
+  saveState();
+  renderAll();
+}
+
+function normalize(str){
+  return str.trim();
+}
+
+function checkPractice(levelId){
+  const level = LEVELS.find(l=>l.id===levelId);
+  const input = document.getElementById('practiceInput_'+levelId);
+  const resultEl = document.getElementById('practiceResult_'+levelId);
+  const val = normalize(input.value);
+  const expected = normalize(level.practice.answer);
+  if(val === expected){
+    resultEl.textContent = "✓ Correct! Concept confirmed — now try the real flag below.";
+    resultEl.style.color = "var(--green)";
+  } else {
+    resultEl.textContent = "✗ Not quite. Re-check the lesson steps above and try again.";
+    resultEl.style.color = "var(--red)";
+  }
+}
+
+function checkFlag(levelId){
+  const level = LEVELS.find(l=>l.id===levelId);
+  const input = document.getElementById('flagInput_'+levelId);
+  const fb = document.getElementById('feedback_'+levelId);
+  const submitted = input.value;
+  const lvState = state.levels[levelId];
+
+  lvState.attempts++;
+
+  if(level.checkFlag(submitted)){
+    if(!lvState.solved){
+      lvState.solved = true;
+      const hintPenalty = lvState.hintsUsed * 15;
+      const earned = Math.max(level.points - hintPenalty, 20);
+      state.score += earned;
+      fb.textContent = "✓ CORRECT! Flag accepted. +" + earned + " points" + (hintPenalty>0 ? " (after hint penalty)" : "") + ". Next level unlocked.";
+      fb.className = "feedback ok";
+      saveState();
+      renderAll();
+      showToast("Level " + levelId + " solved! +" + earned + " pts");
+    } else {
+      fb.textContent = "✓ Correct (already solved — no extra points awarded).";
+      fb.className = "feedback ok";
+    }
+  } else {
+    fb.textContent = "✗ Incorrect flag. Double-check for extra spaces/newlines, or review the lesson steps above.";
+    fb.className = "feedback fail";
+    saveState();
+  }
+}
+
+function useHint(levelId, hintIndex){
+  const lvState = state.levels[levelId];
+  const card = document.getElementById('hintCard_'+levelId+'_'+hintIndex);
+  if(!card.classList.contains('show')){
+    card.classList.add('show');
+    lvState.hintsUsed++;
+    state.totalHints++;
+    saveState();
+    renderStats();
+  }
+}
+
+function renderStats(){
+  document.getElementById('scoreVal').textContent = state.score;
+  const solvedCount = LEVELS.filter(l=>state.levels[l.id].solved).length;
+  document.getElementById('solvedVal').textContent = solvedCount + "/" + LEVELS.length;
+  document.getElementById('hintVal').textContent = state.totalHints;
+  const pct = Math.round((solvedCount/LEVELS.length)*100);
+  document.getElementById('progressFill').style.width = pct + "%";
+  document.getElementById('progressPct').textContent = pct + "%";
+}
+
+function renderDots(){
+  const container = document.getElementById('levelDots');
+  container.innerHTML = '';
+  LEVELS.forEach(l=>{
+    const d = document.createElement('div');
+    const unlocked = isUnlocked(l.id);
+    const solved = state.levels[l.id].solved;
+    d.className = 'dot' + (solved ? ' done' : '') + (l.id===state.activeLevel ? ' active' : '') + (!unlocked ? ' locked' : '');
+    d.textContent = solved ? '✓' : l.id;
+    d.title = l.title + (unlocked ? '' : ' (locked)');
+    d.onclick = () => setActiveLevel(l.id);
+    container.appendChild(d);
+  });
+}
+
+function renderTabs(){
+  const bar = document.getElementById('tabBar');
+  bar.innerHTML = '';
+  LEVELS.forEach(l=>{
+    const btn = document.createElement('button');
+    const unlocked = isUnlocked(l.id);
+    btn.className = 'tab-btn' + (l.id===state.activeLevel ? ' active' : '');
+    btn.textContent = (state.levels[l.id].solved ? '✓ ' : (unlocked ? '' : '🔒 ')) + 'Lvl ' + l.id;
+    btn.onclick = () => setActiveLevel(l.id);
+    bar.appendChild(btn);
+  });
+}
+
+function renderLevel(){
+  const container = document.getElementById('levelContainer');
+  const level = LEVELS.find(l=>l.id === state.activeLevel);
+  const lvState = state.levels[level.id];
+
+  if(!isUnlocked(level.id)){
+    container.innerHTML = `<div class="panel"><h2>🔒 Locked</h2><p class="sub">Solve previous levels to unlock this one.</p></div>`;
+    return;
+  }
+
+  const allSolved = LEVELS.every(l=>state.levels[l.id].solved);
+  const challengeData = level.getChallengeData();
+
+  let hintsHtml = level.hints.map((h,i)=>`
+    <div class="hint-row">
+      <button class="mini-btn" onclick="useHint(${level.id},${i})">Reveal Hint ${i+1}</button>
+      <span class="hint-cost">(-15 pts if used before solving)</span>
+    </div>
+    <div class="hint-card" id="hintCard_${level.id}_${i}">${h}</div>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="panel">
+      <span class="tag ${level.difficulty}">${level.difficulty.toUpperCase()}</span>
+      <span class="tag pts">${level.points} PTS</span>
+      <span class="tag" style="color:var(--text-dim);border:1px solid var(--border);">${level.category}</span>
+      <h2>Level ${level.id}: ${level.title} ${lvState.solved ? ' — ✓ SOLVED' : ''}</h2>
+      <p class="sub">${level.summary}</p>
+
+      <div class="section-title">📘 Lesson</div>
+      ${level.lesson}
+
+      <div class="section-title">🧪 Practice (no points, just confirms understanding)</div>
+      <div class="try-box">
+        <label>${level.practice.label}</label>
+        <input type="text" id="practiceInput_${level.id}" placeholder="${level.practice.placeholder}" value="${level.practice.challenge ? '' : ''}">
+        <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;">Input/data: <code class="inline-code">${level.practice.challenge}</code></div>
+        <button onclick="checkPractice(${level.id})">Check Practice Answer</button>
+        <div class="try-result" id="practiceResult_${level.id}"></div>
+      </div>
+
+      <div class="section-title">🚩 Challenge</div>
+      <div class="lesson-box">
+        <strong>Data:</strong><br>
+        <code style="word-break:break-all;white-space:pre-wrap;">${challengeData}</code>
+      </div>
+      <p class="sub" style="margin-bottom:10px;">${level.flagPrompt}</p>
+
+      <div class="flag-form">
+        <input type="text" id="flagInput_${level.id}" placeholder="Submit flag / answer here">
+        <button class="btn" onclick="checkFlag(${level.id})">Submit Flag</button>
+      </div>
+      <div class="feedback" id="feedback_${level.id}"></div>
+
+      <div class="section-title">💡 Hints</div>
+      <div class="hints-area">${hintsHtml}</div>
+    </div>
+
+    ${allSolved ? `
+    <div class="panel complete-banner">
+      <h2>🏆 Base64 CTF Lab Complete</h2>
+      <p>Final score: ${state.score} points across ${LEVELS.length} challenges.</p>
+      <p>You've now drilled decoding, encoding, multi-layer peeling, and locating hidden encoded data inside noise — the exact skill set that shows up in CTF crypto/forensics rounds. Reset anytime to redo.</p>
+    </div>` : ''}
+  `;
+}
+
+function renderAll(){
+  renderStats();
+  renderDots();
+  renderTabs();
+  renderLevel();
+}
+
+function beginLab(){
+  document.getElementById('introPanel').style.display = 'none';
+  document.getElementById('labArea').style.display = 'block';
+  renderAll();
+}
+function showIntro(){
+  document.getElementById('labArea').style.display = 'none';
+  document.getElementById('introPanel').style.display = 'block';
+}
+
+renderStats();
+</script>
+</body>
+</html>
