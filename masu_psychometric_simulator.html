@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASU Psychometric Test Simulator</title>
+<style>
+:root{
+  --bg:#06080f;
+  --panel:#0d1220;
+  --border:#16203a;
+  --cyan:#00d4ff;
+  --green:#39ff88;
+  --purple:#a78bfa;
+  --red:#ff4d6d;
+  --yellow:#ffd166;
+  --text:#c9d6f0;
+  --text-dim:#7c89ab;
+  --mono:'JetBrains Mono','Fira Code',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(0,212,255,0.07), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(167,139,250,0.07), transparent 40%);
+  color:var(--text);
+  font-family:var(--mono);
+  min-height:100vh;
+  line-height:1.5;
+  padding:20px;
+}
+.wrap{max-width:880px;margin:0 auto;}
+
+header{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--border);
+  padding-bottom:16px;margin-bottom:20px;
+}
+.logo{font-size:1.3rem;color:var(--cyan);font-weight:700;}
+.logo span{color:var(--green);}
+.logo small{display:block;font-size:0.62rem;color:var(--text-dim);letter-spacing:2px;margin-top:2px;}
+
+.timer-box{
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:8px 16px;text-align:center;min-width:100px;
+}
+.timer-box.warn{border-color:var(--yellow);}
+.timer-box.danger{border-color:var(--red);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 rgba(255,77,109,0);}50%{box-shadow:0 0 12px rgba(255,77,109,0.5);}}
+.timer-val{font-size:1.2rem;font-weight:700;color:var(--cyan);}
+.timer-box.warn .timer-val{color:var(--yellow);}
+.timer-box.danger .timer-val{color:var(--red);}
+.timer-label{font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;}
+
+.panel{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:26px;margin-bottom:20px;
+}
+
+/* START SCREEN */
+.start-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:18px 0;}
+.cat-card{
+  background:#0a0f1c;border:1px solid var(--border);border-radius:8px;padding:14px;
+}
+.cat-card .n{color:var(--cyan);font-size:0.85rem;font-weight:700;}
+.cat-card .d{color:var(--text-dim);font-size:0.7rem;margin-top:4px;}
+.setting-row{display:flex;justify-content:space-between;align-items:center;margin:14px 0;flex-wrap:wrap;gap:10px;}
+.setting-row label{font-size:0.8rem;color:var(--text-dim);}
+select{
+  background:#0a0f1c;color:var(--text);border:1px solid var(--border);border-radius:6px;
+  padding:8px 12px;font-family:var(--mono);font-size:0.8rem;
+}
+.btn{
+  background:linear-gradient(135deg,var(--cyan),#0090b0);color:#001018;
+  border:none;padding:13px 26px;border-radius:8px;font-family:var(--mono);
+  font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:0.5px;
+  transition:transform .15s;width:100%;
+}
+.btn:hover{transform:translateY(-1px);}
+.btn.secondary{background:transparent;color:var(--purple);border:1px solid var(--purple);}
+.btn.small{width:auto;padding:9px 18px;font-size:0.78rem;}
+
+.history-box{
+  background:#0a0f1c;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-top:14px;
+  font-size:0.78rem;color:var(--text-dim);
+}
+.history-box .best{color:var(--green);font-weight:700;}
+
+/* PROGRESS */
+.progress-row{display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-dim);margin-bottom:6px;}
+.progress-bar-bg{background:#0a0f1c;border-radius:6px;height:10px;overflow:hidden;border:1px solid var(--border);}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));width:0%;transition:width .3s ease;}
+
+/* QUESTION SCREEN */
+.q-meta{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.tag{font-size:0.62rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);color:var(--text-dim);}
+.tag.cat-logical{border-color:var(--cyan);color:var(--cyan);}
+.tag.cat-pattern{border-color:var(--purple);color:var(--purple);}
+.tag.cat-numerical{border-color:var(--green);color:var(--green);}
+.tag.cat-verbal{border-color:var(--yellow);color:var(--yellow);}
+
+.q-text{font-size:1.05rem;color:var(--text);margin-bottom:18px;line-height:1.6;white-space:pre-wrap;}
+.options{display:flex;flex-direction:column;gap:10px;}
+.option{
+  background:#0a0f1c;border:1px solid var(--border);border-radius:8px;
+  padding:13px 16px;cursor:pointer;font-size:0.88rem;transition:all .15s;
+  display:flex;align-items:center;gap:10px;
+}
+.option:hover{border-color:var(--cyan);}
+.option.selected{background:rgba(0,212,255,0.1);border-color:var(--cyan);}
+.option-letter{
+  width:24px;height:24px;border-radius:50%;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0;
+  color:var(--text-dim);
+}
+.option.selected .option-letter{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.15);}
+
+.nav-row{display:flex;justify-content:space-between;margin-top:22px;gap:10px;flex-wrap:wrap;}
+.nav-row .btn{width:auto;flex:1;min-width:120px;}
+
+.q-dots{display:flex;gap:5px;flex-wrap:wrap;margin-top:16px;max-height:80px;overflow-y:auto;}
+.q-dot{
+  width:22px;height:22px;border-radius:4px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:0.55rem;
+  color:var(--text-dim);background:#0a0f1c;cursor:pointer;flex-shrink:0;
+}
+.q-dot.answered{background:rgba(57,255,136,0.12);border-color:var(--green);color:var(--green);}
+.q-dot.current{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 6px rgba(0,212,255,0.4);}
+
+/* RESULTS */
+.score-hero{text-align:center;padding:20px 0;}
+.score-hero .big{font-size:3rem;color:var(--green);font-weight:700;}
+.score-hero .sub{color:var(--text-dim);font-size:0.85rem;margin-top:4px;}
+.cat-results{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:20px 0;}
+.cat-result{background:#0a0f1c;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.cat-result .name{font-size:0.78rem;color:var(--text-dim);margin-bottom:6px;}
+.cat-result .score{font-size:1.3rem;font-weight:700;color:var(--cyan);}
+.cat-result .bar-bg{background:#06080f;border-radius:5px;height:6px;overflow:hidden;margin-top:8px;}
+.cat-result .bar-fill{height:100%;background:var(--cyan);}
+
+.review-item{
+  background:#0a0f1c;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;
+}
+.review-item.correct{border-left:3px solid var(--green);}
+.review-item.incorrect{border-left:3px solid var(--red);}
+.review-item .rq{font-size:0.85rem;margin-bottom:8px;}
+.review-item .ra{font-size:0.78rem;color:var(--text-dim);}
+.review-item .ra.user-correct{color:var(--green);}
+.review-item .ra.user-wrong{color:var(--red);}
+
+footer{text-align:center;color:var(--text-dim);font-size:0.7rem;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);}
+
+.hidden{display:none !important;}
+
+@media(max-width:600px){
+  .start-grid{grid-template-columns:1fr;}
+  .cat-results{grid-template-columns:1fr;}
+  .nav-row .btn{flex:1 1 100%;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">MASU<span>_</span>PSYCHOMETRIC
+      <small>OFFLINE TEST SIMULATOR</small>
+    </div>
+    <div class="timer-box hidden" id="timerBox">
+      <div class="timer-val" id="timerVal">--:--</div>
+      <div class="timer-label">TIME LEFT</div>
+    </div>
+  </header>
+
+  <!-- START SCREEN -->
+  <div class="panel" id="startScreen">
+    <h2 style="color:var(--cyan);margin-bottom:8px;">Psychometric Test Simulator</h2>
+    <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:16px;">
+      50 randomly selected questions across four reasoning categories. Fully offline, scored instantly, with category breakdown and a full answer review.
+    </p>
+
+    <div class="start-grid">
+      <div class="cat-card"><div class="n">Logical Reasoning</div><div class="d">Deduction, sequences, syllogisms</div></div>
+      <div class="cat-card"><div class="n">Pattern Recognition</div><div class="d">Sequences, odd-one-out, series</div></div>
+      <div class="cat-card"><div class="n">Numerical Reasoning</div><div class="d">Arithmetic, ratios, series, word problems</div></div>
+      <div class="cat-card"><div class="n">Verbal Reasoning</div><div class="d">Analogies, synonyms/antonyms, comprehension</div></div>
+    </div>
+
+    <div class="setting-row">
+      <label>Time limit:</label>
+      <select id="timeSelect">
+        <option value="600">10 minutes</option>
+        <option value="900" selected>15 minutes</option>
+        <option value="1200">20 minutes</option>
+        <option value="1800">30 minutes</option>
+        <option value="0">No time limit</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <label>Question count:</label>
+      <select id="countSelect">
+        <option value="20">20 questions</option>
+        <option value="50" selected>50 questions</option>
+      </select>
+    </div>
+
+    <button class="btn" onclick="startTest()">Start Test</button>
+
+    <div class="history-box" id="historyBox"></div>
+  </div>
+
+  <!-- TEST SCREEN -->
+  <div class="panel hidden" id="testScreen">
+    <div class="progress-row">
+      <span id="progressLabel">Question 1 / 50</span>
+      <span id="answeredLabel">0 answered</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+
+    <div style="margin-top:20px;">
+      <div class="q-meta"><span class="tag" id="qCategoryTag">Category</span></div>
+      <div class="q-text" id="qText">Question text</div>
+      <div class="options" id="qOptions"></div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn secondary small" onclick="prevQuestion()">← Previous</button>
+      <button class="btn small" onclick="nextQuestion()" id="nextBtn">Next →</button>
+      <button class="btn small" style="background:linear-gradient(135deg,var(--green),#0a8a4a);color:#001a0d;" onclick="confirmSubmit()" id="submitBtn">Submit Test</button>
+    </div>
+
+    <div class="q-dots" id="qDots"></div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="panel hidden" id="resultsScreen">
+    <div class="score-hero">
+      <div class="big" id="finalScorePct">0%</div>
+      <div class="sub" id="finalScoreDetail">0 / 50 correct</div>
+    </div>
+    <div class="cat-results" id="catResults"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+      <button class="btn small" onclick="restartTest()">Take New Test</button>
+      <button class="btn secondary small" onclick="toggleReview()" id="reviewToggleBtn">Show Full Review</button>
+    </div>
+    <div id="reviewArea" class="hidden"></div>
+  </div>
+
+  <footer>MASU Cyber Academy — Offline Psychometric Simulator — No internet required — INSA / aptitude test prep</footer>
+</div>
+
+<script>
+/* ============================================================
+   MASU PSYCHOMETRIC TEST SIMULATOR
+   Fully offline, single file, no external libraries
+   ============================================================ */
+
+const QUESTION_BANK = [
+  /* ---------------- LOGICAL REASONING (18) ---------------- */
+  {cat:"logical", q:"All Zips are Doras. All Doras are Mips. Therefore:", opts:["All Mips are Zips","All Zips are Mips","No Zips are Mips","Some Mips are not Doras"], a:1},
+  {cat:"logical", q:"If today is Wednesday, what day will it be 100 days from now?", opts:["Wednesday","Thursday","Friday","Saturday"], a:2},
+  {cat:"logical", q:"Five friends sit in a row. Ana is left of Ben. Ben is left of Cara. Cara is left of Dan. Dan is left of Eli. Who sits in the middle?", opts:["Ana","Ben","Cara","Dan"], a:2},
+  {cat:"logical", q:"Statement: 'No engineers are managers. All managers are graduates.' Conclusion: 'No engineers are graduates.' Is this conclusion valid?", opts:["Valid","Invalid","Cannot be determined","Always true"], a:1},
+  {cat:"logical", q:"A is the brother of B. B is the sister of C. C is the father of D. How is A related to D?", opts:["Uncle/Aunt","Father","Cousin","Grandparent"], a:0},
+  {cat:"logical", q:"If all Bloops are Razzies and all Razzies are Lazzies, are all Bloops definitely Lazzies?", opts:["Yes","No","Only some","Cannot be determined"], a:0},
+  {cat:"logical", q:"In a code, MOUSE is written as NPVTF. How is TIGER written in that code?", opts:["UJHFS","UJHFT","UIHFS","SJHFS"], a:0},
+  {cat:"logical", q:"Three people: one always tells the truth, one always lies, one sometimes lies. Person X says 'I am not the liar.' What can you conclude about X?", opts:["X is the liar","X is the truth-teller","X is not the liar","Nothing can be concluded"], a:2},
+  {cat:"logical", q:"If no cats are dogs, and some dogs are pets, can we conclude 'no cats are pets'?", opts:["Yes, always true","No, cannot be determined","Yes, but only sometimes","All cats are pets instead"], a:1},
+  {cat:"logical", q:"A clock shows 3:15. What is the angle between the hour and minute hands (approx)?", opts:["0°","7.5°","37.5°","90°"], a:2},
+  {cat:"logical", q:"Find the next number in the logical sequence based on rule 'add previous two': 1, 1, 2, 3, 5, 8, ?", opts:["11","12","13","10"], a:2},
+  {cat:"logical", q:"If it is true that 'some students are athletes' and 'all athletes are disciplined', which must be true?", opts:["All students are disciplined","Some students are disciplined","No students are disciplined","All disciplined people are students"], a:1},
+  {cat:"logical", q:"P is taller than Q. R is shorter than Q. S is taller than P. Who is the tallest?", opts:["P","Q","R","S"], a:3},
+  {cat:"logical", q:"A box contains only red and blue balls. If picking 2 balls guarantees at least one red, what is the minimum number of blue balls possible?", opts:["0","1","2","Cannot be determined"], a:1},
+  {cat:"logical", q:"If 'all hackers are curious' and 'Maty is curious', can we conclude 'Maty is a hacker'?", opts:["Yes, definitely","No, this is a logical fallacy (affirming the consequent)","Yes, because curiosity implies hacking","Cannot be determined either way without more data, but commonly assumed yes"], a:1},
+  {cat:"logical", q:"Which conclusion logically follows: 'If it rains, the match is cancelled. The match was not cancelled.'", opts:["It rained","It did not rain","It might have rained","The match happened despite rain"], a:1},
+  {cat:"logical", q:"Four boxes are stacked. Box A is above Box B. Box C is below Box D. Box B is above Box C. What is the order from top to bottom?", opts:["A,B,C,D","D,A,B,C","A,B,D,C","A,D,B,C"], a:0},
+  {cat:"logical", q:"A train leaves at 10:00 and another leaves the same station at 10:30 going the same direction, faster. If the second train catches up at 12:30, how long did the first train travel before being caught?", opts:["2 hours","2.5 hours","3 hours","1.5 hours"], a:1},
+
+  /* ---------------- PATTERN RECOGNITION (18) ---------------- */
+  {cat:"pattern", q:"Find the next number: 2, 6, 12, 20, 30, ?", opts:["40","42","44","36"], a:1},
+  {cat:"pattern", q:"Find the odd one out: Circle, Square, Triangle, Red", opts:["Circle","Square","Triangle","Red"], a:3},
+  {cat:"pattern", q:"Complete the pattern: AZ, BY, CX, DW, ?", opts:["EV","EU","FV","EW"], a:0},
+  {cat:"pattern", q:"What comes next in the sequence: 3, 9, 27, 81, ?", opts:["162","243","324","729"], a:1},
+  {cat:"pattern", q:"Find the missing letter: A, C, F, J, O, ?", opts:["S","T","U","R"], a:2},
+  {cat:"pattern", q:"Sequence: 1, 4, 9, 16, 25, ?  (pattern: squares)", opts:["30","35","36","49"], a:2},
+  {cat:"pattern", q:"Which shape continues the pattern: △▢△▢△▢?", opts:["△","▢","○","◇"], a:0},
+  {cat:"pattern", q:"Find the odd one out: 4, 9, 16, 23, 25", opts:["4","9","16","23"], a:3},
+  {cat:"pattern", q:"Sequence: 100, 50, 25, 12.5, ?", opts:["6.25","6","5","7.5"], a:0},
+  {cat:"pattern", q:"Letters pattern: Z, Y, X, W, ? (reverse alphabet)", opts:["V","U","T","S"], a:0},
+  {cat:"pattern", q:"Number pattern: 5, 11, 23, 47, ?  (rule: ×2 +1)", opts:["94","95","96","93"], a:1},
+  {cat:"pattern", q:"Find next in series: 2, 3, 5, 8, 13, 21, ? (Fibonacci-like)", opts:["29","32","34","36"], a:2},
+  {cat:"pattern", q:"Pattern: J4, K8, L16, M32, ? (rule: letter+1, number doubles)", opts:["N64","N48","O64","N62"], a:0},
+  {cat:"pattern", q:"Which number doesn't belong: 8, 27, 64, 100, 125 (cubes test)", opts:["8","27","64","100"], a:3},
+  {cat:"pattern", q:"Series: 1, 2, 4, 7, 11, 16, ? (rule: add increasing integers)", opts:["20","21","22","23"], a:2},
+  {cat:"pattern", q:"Complete: M, O, Q, S, ? (skip one letter each time)", opts:["T","U","V","W"], a:1},
+  {cat:"pattern", q:"Pattern: 81, 27, 9, 3, ? (divide by 3 each time)", opts:["0","1","1.5","2"], a:1},
+  {cat:"pattern", q:"Number grid logic: if row sums must equal 15, and a row has 4,6,?, what's missing?", opts:["3","5","6","7"], a:1},
+
+  /* ---------------- NUMERICAL REASONING (18) ---------------- */
+  {cat:"numerical", q:"A shirt costs $40 after a 20% discount. What was the original price?", opts:["$48","$50","$52","$45"], a:1},
+  {cat:"numerical", q:"If 5 machines produce 100 units in 4 hours, how many units do 10 machines produce in 4 hours?", opts:["150","200","250","100"], a:1},
+  {cat:"numerical", q:"What is 15% of 240?", opts:["32","36","40","30"], a:1},
+  {cat:"numerical", q:"A train travels 240 km in 3 hours. What is its average speed in km/h?", opts:["60","70","80","90"], a:2},
+  {cat:"numerical", q:"If x + 7 = 15, what is x²?", opts:["49","56","64","81"], a:2},
+  {cat:"numerical", q:"A ratio of 3:5 represents boys to girls. If there are 24 boys, how many girls are there?", opts:["32","36","40","45"], a:2},
+  {cat:"numerical", q:"What number is 25% more than 80?", opts:["95","100","105","110"], a:1},
+  {cat:"numerical", q:"If a worker earns $18/hour and works 7.5 hours, what is the total earning?", opts:["$125","$130","$135","$140"], a:2},
+  {cat:"numerical", q:"The average of 4 numbers is 20. If one number is removed, the average of the remaining 3 is 18. What was the removed number?", opts:["24","26","28","22"], a:0},
+  {cat:"numerical", q:"A population grows from 2000 to 2400 in one year. What is the percentage growth?", opts:["15%","18%","20%","25%"], a:2},
+  {cat:"numerical", q:"Simplify: (8 × 6) − (4 × 3) ÷ 2", opts:["42","44","46","48"], a:2},
+  {cat:"numerical", q:"If 3 pens cost $4.50, how much do 7 pens cost?", opts:["$9.50","$10.00","$10.50","$11.00"], a:2},
+  {cat:"numerical", q:"A rectangle has a perimeter of 36 cm and length 10 cm. What is its width?", opts:["6 cm","7 cm","8 cm","9 cm"], a:1},
+  {cat:"numerical", q:"What is the next number in the financial sequence: $100, $110, $121, $133.10, ? (10% compound growth)", opts:["$144.10","$146.41","$148.20","$150.00"], a:1},
+  {cat:"numerical", q:"If 60% of a number is 90, what is the number?", opts:["120","135","150","160"], a:2},
+  {cat:"numerical", q:"A car depreciates 10% of its value each year. Starting at $20,000, what is its value after 2 years?", opts:["$16,000","$16,200","$18,000","$17,800"], a:1},
+  {cat:"numerical", q:"Two pipes fill a tank in 6 and 8 hours respectively. How long do they take together (approx)?", opts:["3.4 hours","3.0 hours","4.0 hours","2.8 hours"], a:0},
+  {cat:"numerical", q:"If the ratio of income to expenditure is 9:8 and income is $4,500, what is the expenditure?", opts:["$3,800","$4,000","$4,200","$4,500"], a:1},
+
+  /* ---------------- VERBAL REASONING (18) ---------------- */
+  {cat:"verbal", q:"Choose the word most similar in meaning to 'METICULOUS':", opts:["Careless","Thorough","Hasty","Vague"], a:1},
+  {cat:"verbal", q:"Choose the word most OPPOSITE in meaning to 'BENEVOLENT':", opts:["Kind","Generous","Malicious","Charitable"], a:2},
+  {cat:"verbal", q:"Complete the analogy: Doctor is to Hospital as Teacher is to ___", opts:["Classroom","Book","Student","Lesson"], a:0},
+  {cat:"verbal", q:"Complete the analogy: Pen is to Write as Knife is to ___", opts:["Sharp","Cut","Kitchen","Metal"], a:1},
+  {cat:"verbal", q:"Which word does NOT belong: Joyful, Elated, Sorrowful, Ecstatic", opts:["Joyful","Elated","Sorrowful","Ecstatic"], a:2},
+  {cat:"verbal", q:"Choose the synonym for 'UBIQUITOUS':", opts:["Rare","Omnipresent","Hidden","Temporary"], a:1},
+  {cat:"verbal", q:"Choose the antonym for 'TRANSPARENT' (in the context of clarity):", opts:["Clear","Obvious","Opaque","Visible"], a:2},
+  {cat:"verbal", q:"Complete the analogy: Author is to Book as Composer is to ___", opts:["Instrument","Symphony","Orchestra","Concert"], a:1},
+  {cat:"verbal", q:"Which sentence is grammatically correct?", opts:["She don't like coffee.","She doesn't likes coffee.","She doesn't like coffee.","She not like coffee."], a:2},
+  {cat:"verbal", q:"Choose the word closest in meaning to 'CONCISE':", opts:["Lengthy","Brief","Confusing","Detailed"], a:1},
+  {cat:"verbal", q:"Read: 'Despite the storm, the ship arrived on time.' What can be inferred?", opts:["The storm delayed the ship","The ship was unaffected by the delay risk","There was no storm","The ship sank"], a:1},
+  {cat:"verbal", q:"Choose the antonym for 'ABUNDANT':", opts:["Plentiful","Scarce","Generous","Excessive"], a:1},
+  {cat:"verbal", q:"Complete the analogy: Key is to Lock as Password is to ___", opts:["Computer","Account","Username","Login"], a:1},
+  {cat:"verbal", q:"Which word means 'to make something less severe'?", opts:["Aggravate","Mitigate","Escalate","Amplify"], a:1},
+  {cat:"verbal", q:"Identify the word that is spelled correctly:", opts:["Recieve","Receive","Receeve","Receve"], a:1},
+  {cat:"verbal", q:"Choose the synonym for 'CANDID':", opts:["Deceptive","Frank","Secretive","Evasive"], a:1},
+  {cat:"verbal", q:"Complete the analogy: Fish is to Water as Bird is to ___", opts:["Nest","Sky","Tree","Wing"], a:1},
+  {cat:"verbal", q:"Which word best completes: 'The witness gave a ___ account of the events, leaving no detail out.'", opts:["vague","comprehensive","biased","brief"], a:1}
+];
+
+const CAT_LABELS = {
+  logical:"Logical Reasoning",
+  pattern:"Pattern Recognition",
+  numerical:"Numerical Reasoning",
+  verbal:"Verbal Reasoning"
+};
+
+const STORAGE_KEY = "masu_psychometric_sim_v1";
+
+let testQuestions = [];
+let userAnswers = [];
+let currentIndex = 0;
+let timeLimitSeconds = 900;
+let timeRemaining = 900;
+let timerInterval = null;
+let testActive = false;
+
+/* ---------- utilities ---------- */
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function loadHistory(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {attempts:0, bestPct:0, lastPct:0};
+  }catch(e){
+    return {attempts:0, bestPct:0, lastPct:0};
+  }
+}
+function saveHistory(h){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(h));
+}
+
+function renderHistory(){
+  const h = loadHistory();
+  const box = document.getElementById('historyBox');
+  if(h.attempts === 0){
+    box.textContent = "No previous attempts saved yet. Your results will be saved locally after you finish a test.";
+  } else {
+    box.innerHTML = `Attempts: ${h.attempts} &nbsp;|&nbsp; Last score: ${h.lastPct}% &nbsp;|&nbsp; Best score: <span class="best">${h.bestPct}%</span>`;
+  }
+}
+
+/* ---------- test flow ---------- */
+function startTest(){
+  const count = parseInt(document.getElementById('countSelect').value, 10);
+  timeLimitSeconds = parseInt(document.getElementById('timeSelect').value, 10);
+  timeRemaining = timeLimitSeconds;
+
+  // build a balanced-ish random sample across categories, then fill remainder randomly
+  const byCat = {logical:[],pattern:[],numerical:[],verbal:[]};
+  QUESTION_BANK.forEach(q=>byCat[q.cat].push(q));
+  Object.keys(byCat).forEach(k=>byCat[k]=shuffleArray(byCat[k]));
+
+  let pool = [];
+  const perCat = Math.floor(count / 4);
+  Object.keys(byCat).forEach(k=>{
+    pool = pool.concat(byCat[k].slice(0, perCat));
+  });
+  // fill remainder if count not divisible by 4, pulling from leftovers
+  let remainder = count - pool.length;
+  if(remainder > 0){
+    let leftovers = [];
+    Object.keys(byCat).forEach(k=>{
+      leftovers = leftovers.concat(byCat[k].slice(perCat));
+    });
+    leftovers = shuffleArray(leftovers);
+    pool = pool.concat(leftovers.slice(0, remainder));
+  }
+
+  testQuestions = shuffleArray(pool).slice(0, count);
+  // shuffle option order per question while tracking correct answer
+  testQuestions = testQuestions.map(q=>{
+    const indices = q.opts.map((_,i)=>i);
+    const shuffled = shuffleArray(indices);
+    const newOpts = shuffled.map(i=>q.opts[i]);
+    const newAnswerIndex = shuffled.indexOf(q.a);
+    return {cat:q.cat, q:q.q, opts:newOpts, a:newAnswerIndex};
+  });
+
+  userAnswers = new Array(testQuestions.length).fill(null);
+  currentIndex = 0;
+  testActive = true;
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('resultsScreen').classList.add('hidden');
+  document.getElementById('testScreen').classList.remove('hidden');
+
+  if(timeLimitSeconds > 0){
+    document.getElementById('timerBox').classList.remove('hidden');
+    startTimer();
+  } else {
+    document.getElementById('timerBox').classList.add('hidden');
+  }
+
+  renderQuestion();
+  renderDots();
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  updateTimerDisplay();
+  timerInterval = setInterval(()=>{
+    timeRemaining--;
+    updateTimerDisplay();
+    if(timeRemaining <= 0){
+      clearInterval(timerInterval);
+      finishTest(true);
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay(){
+  const m = Math.floor(timeRemaining/60);
+  const s = timeRemaining%60;
+  document.getElementById('timerVal').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  const box = document.getElementById('timerBox');
+  box.classList.remove('warn','danger');
+  if(timeRemaining <= 60) box.classList.add('danger');
+  else if(timeRemaining <= 180) box.classList.add('warn');
+}
+
+function renderQuestion(){
+  const q = testQuestions[currentIndex];
+  document.getElementById('progressLabel').textContent = `Question ${currentIndex+1} / ${testQuestions.length}`;
+  const answeredCount = userAnswers.filter(a=>a!==null).length;
+  document.getElementById('answeredLabel').textContent = `${answeredCount} answered`;
+  const pct = Math.round(((currentIndex+1)/testQuestions.length)*100);
+  document.getElementById('progressFill').style.width = pct+"%";
+
+  const tag = document.getElementById('qCategoryTag');
+  tag.textContent = CAT_LABELS[q.cat];
+  tag.className = "tag cat-"+q.cat;
+
+  document.getElementById('qText').textContent = q.q;
+
+  const optsContainer = document.getElementById('qOptions');
+  optsContainer.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.opts.forEach((opt,i)=>{
+    const div = document.createElement('div');
+    div.className = 'option' + (userAnswers[currentIndex]===i ? ' selected' : '');
+    div.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+    div.onclick = () => selectOption(i);
+    optsContainer.appendChild(div);
+  });
+
+  document.getElementById('nextBtn').textContent = currentIndex === testQuestions.length-1 ? 'Finish' : 'Next →';
+  renderDots();
+}
+
+function selectOption(i){
+  userAnswers[currentIndex] = i;
+  renderQuestion();
+}
+
+function nextQuestion(){
+  if(currentIndex < testQuestions.length-1){
+    currentIndex++;
+    renderQuestion();
+  } else {
+    confirmSubmit();
+  }
+}
+function prevQuestion(){
+  if(currentIndex > 0){
+    currentIndex--;
+    renderQuestion();
+  }
+}
+
+function renderDots(){
+  const container = document.getElementById('qDots');
+  container.innerHTML = '';
+  testQuestions.forEach((q,i)=>{
+    const d = document.createElement('div');
+    d.className = 'q-dot' + (userAnswers[i]!==null ? ' answered' : '') + (i===currentIndex ? ' current' : '');
+    d.textContent = i+1;
+    d.onclick = () => { currentIndex = i; renderQuestion(); };
+    container.appendChild(d);
+  });
+}
+
+function confirmSubmit(){
+  const unanswered = userAnswers.filter(a=>a===null).length;
+  if(unanswered > 0){
+    if(!confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return;
+  } else {
+    if(!confirm("Submit the test now?")) return;
+  }
+  finishTest(false);
+}
+
+function finishTest(timedOut){
+  clearInterval(timerInterval);
+  testActive = false;
+
+  let correct = 0;
+  const catStats = {logical:{c:0,t:0}, pattern:{c:0,t:0}, numerical:{c:0,t:0}, verbal:{c:0,t:0}};
+  testQuestions.forEach((q,i)=>{
+    catStats[q.cat].t++;
+    if(userAnswers[i] === q.a){
+      correct++;
+      catStats[q.cat].c++;
+    }
+  });
+
+  const pct = Math.round((correct/testQuestions.length)*100);
+
+  const h = loadHistory();
+  h.attempts++;
+  h.lastPct = pct;
+  h.bestPct = Math.max(h.bestPct, pct);
+  saveHistory(h);
+
+  document.getElementById('testScreen').classList.add('hidden');
+  document.getElementById('resultsScreen').classList.remove('hidden');
+  document.getElementById('timerBox').classList.add('hidden');
+
+  document.getElementById('finalScorePct').textContent = pct+"%";
+  document.getElementById('finalScoreDetail').textContent =
+    `${correct} / ${testQuestions.length} correct` + (timedOut ? "  —  ⏱ time expired" : "");
+
+  const catContainer = document.getElementById('catResults');
+  catContainer.innerHTML = '';
+  Object.keys(catStats).forEach(k=>{
+    const s = catStats[k];
+    const cpct = s.t>0 ? Math.round((s.c/s.t)*100) : 0;
+    const div = document.createElement('div');
+    div.className = 'cat-result';
+    div.innerHTML = `
+      <div class="name">${CAT_LABELS[k]}</div>
+      <div class="score">${s.c}/${s.t}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${cpct}%"></div></div>
+    `;
+    catContainer.appendChild(div);
+  });
+
+  buildReview();
+  document.getElementById('reviewArea').classList.add('hidden');
+  document.getElementById('reviewToggleBtn').textContent = 'Show Full Review';
+}
+
+function buildReview(){
+  const area = document.getElementById('reviewArea');
+  area.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  testQuestions.forEach((q,i)=>{
+    const userAns = userAnswers[i];
+    const isCorrect = userAns === q.a;
+    const div = document.createElement('div');
+    div.className = 'review-item ' + (isCorrect ? 'correct' : 'incorrect');
+    div.innerHTML = `
+      <div class="rq"><strong>Q${i+1}.</strong> [${CAT_LABELS[q.cat]}] ${q.q}</div>
+      <div class="ra ${isCorrect ? 'user-correct' : 'user-wrong'}">
+        Your answer: ${userAns!==null ? letters[userAns]+'. '+q.opts[userAns] : '(not answered)'}
+      </div>
+      ${!isCorrect ? `<div class="ra" style="color:var(--green);">Correct answer: ${letters[q.a]}. ${q.opts[q.a]}</div>` : ''}
+    `;
+    area.appendChild(div);
+  });
+}
+
+function toggleReview(){
+  const area = document.getElementById('reviewArea');
+  const btn = document.getElementById('reviewToggleBtn');
+  area.classList.toggle('hidden');
+  btn.textContent = area.classList.contains('hidden') ? 'Show Full Review' : 'Hide Full Review';
+}
+
+function restartTest(){
+  document.getElementById('resultsScreen').classList.add('hidden');
+  document.getElementById('startScreen').classList.remove('hidden');
+  renderHistory();
+}
+
+window.addEventListener('beforeunload', function(e){
+  if(testActive){
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+renderHistory();
+</script>
+</body>
+</html>
